@@ -1,3 +1,10 @@
+;; init.el
+;;
+;; TODO:
+;;
+;; Make uniqify, and color-theme work again.
+;;
+
 ;; Save backup and autosaves to ~/.emacs.d/.tmp
 
 (setq temporary-file-directory "~/.emacs.d/tmp")
@@ -9,17 +16,67 @@
    delete-old-versions t
    kept-new-versions 6
    kept-old-versions 2
-   version-control t)
+   version-control t
+   inhibit-startup-screen t
+   initial-scratch-message nil)
 
-;; Set up the package manager.
-;; Use elpa, melpa, and marmalade
-(when (>= emacs-major-version 24)
-  (require 'package)
+;; <leaf-install-code>
+(eval-and-compile
+  (customize-set-variable
+   'package-archives '(("org" . "https://orgmode.org/elpa/")
+                       ("melpa" . "https://melpa.org/packages/")
+                       ("gnu" . "https://elpa.gnu.org/packages/")))
   (package-initialize)
-  (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/"))
-  (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))
-  )
+  (unless (package-installed-p 'leaf)
+    (package-refresh-contents)
+    (package-install 'leaf))
 
+  (leaf leaf-keywords
+    :ensure t
+    :init
+    ;; optional packages if you want to use :hydra, :el-get, :blackout,,,
+    (leaf hydra :ensure t)
+    (leaf el-get :ensure t)
+    (leaf blackout :ensure t)
+
+    :config
+    ;; initialize leaf-keywords.el
+    (leaf-keywords-init)))
+;; </leaf-install-code>
+
+;; Lazily install add-on packages.
+
+(leaf
+  flymake-jslint
+  vterm
+  cl-lib
+  ws-butler
+  :ensure t)
+
+;; General utility functions
+
+(defun symbol-components (symbol)
+  `(
+     ("symbol-name"     . ,(symbol-name symbol))
+     ("symbol-value"    . ,(ignore-errors (symbol-value symbol)))
+     ("symbol-function" . ,(ignore-errors (symbol-function symbol)))
+     ("symbol-plist"    . ,(ignore-errors (symbol-plist symbol)))
+  ))
+
+(defun lisp ()
+  (interactive)
+  (switch-to-buffer "*ielm*"))
+
+(setq init-el-path
+  (concat user-emacs-directory "init.el"))
+
+(defun reload-init-el ()
+  (interactive)
+  (load init-el-path))
+
+(defun edit-init-el ()
+  (interactive)
+  (find-file init-el-path))
 
 ;; Set up pyflakes/PEP8 checking
 (defun flymake-create-temp-in-system-tempdir (filename prefix)
@@ -37,28 +94,34 @@
   (add-to-list 'flymake-allowed-file-name-masks
 	       '("\\.py\\'" flymake-pyflakes-init)))
 
+;; Configure ws-butler to trim witespace at EOL on save in programming modes
+;; derived from prog-mode
+
+(add-hook 'prog-mode-hook #'ws-butler-mode)
+
+;; Configure ws-butler to ignore multiline strings
+
+(setq ws-butler-trim-predicate
+      (lambda (beg end)
+        (not (eq 'font-lock-string-face
+                 (get-text-property end 'face)))))
+
 ;; Configure Espresso for JS editing
-;; Emacs 22 comes with css-mode.el and espresso.el - if you don't have it, then you have to copy the respective
-;; .el files from the ~/.emacs.d dir
+;; Emacs 22 comes with css-mode.el and espresso.el - if you don't have it, then
+;; you have to copy the respective .el files from the ~/.emacs.d dir
 
 (autoload 'css-mode "css-mode")
 (add-to-list 'auto-mode-alist '("\\.js$" . js-mode))
 (setq auto-mode-alist (cons '("\\.json\\'" . js-mode) auto-mode-alist))
 
-; Load JavaScript Flymake
-; May need to package-install flymake-jslint
-(require 'flymake-jslint)
+;; Configure JavaScript Flymake
+
 (add-hook 'js2-mode-hook 'flymake-mode)
 
 ;; Modify the way emacs displays buffer names with the same filename
 ;; but different paths
-(require 'uniquify)
-
-;; Nuke trailing whitespace on lines I've modifed
-;; may need to package-install ws-trim
-(require 'ws-trim)
-(global-ws-trim-mode t)
-(set-default 'ws-trim-level 1) ; only modified lines are trimmed
+;;(leaf uniquify
+;;      :ensure t)
 
 ;; We need the indent-tabs-mode to be set to nil to convert tabs
 ;; into spaces, which is needed to pass JSLint.
@@ -71,8 +134,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(flymake-errline ((((class color)) (:background "Red" :bold :foreground "Yellow"))))
-  '(flymake-warnline ((((class color)) (:background "DarkBlue")))))
+ '(flymake-error ((((class color)) (:background "Red" :bold :foreground "Yellow"))))
+ '(flymake-warning ((((class color)) (:background "DarkBlue")))))
 ;; Set the path for the emacs process so things like running .bashrc
 ;; when opening a terminal work
 (setenv "PATH" (shell-command-to-string "source ~/.bash_profile; echo -n $PATH"))
@@ -107,10 +170,41 @@
 
 ;; Set a proper color theme.
 
-(require 'color-theme)
-(color-theme-initialize)
-(color-theme-hober)
+;(require 'color-theme)
+;(color-theme-initialize)
+;(color-theme-hober)
 
 ;; Don't highlight the current line.  It's annoying!
 
 (global-hl-line-mode 0)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(leaf-keywords hydra flymake-jslint el-get color-theme blackout))
+ '(safe-local-variable-values
+   '((eval ignore-errors "Write-contents-functions is a buffer-local alternative to before-save-hook"
+           (add-hook 'write-contents-functions
+                     (lambda nil
+                       (delete-trailing-whitespace)
+                       nil))
+           (require 'whitespace)
+           "Sometimes the mode needs to be toggled off and on."
+           (whitespace-mode 0)
+           (whitespace-mode 1))
+     (whitespace-style face tabs trailing lines-tail))))
+
+;; Configure autocomplete for ielm
+
+(defun ielm-auto-complete ()
+  "Enables `auto-complete' support in \\[ielm]."
+  (setq ac-sources '(ac-source-functions
+                     ac-source-variables
+                     ac-source-features
+                     ac-source-symbols
+                     ac-source-words-in-same-mode-buffers))
+  (add-to-list 'ac-modes 'inferior-emacs-lisp-mode)
+  (auto-complete-mode 1))
+(add-hook 'ielm-mode-hook 'ielm-auto-complete)
