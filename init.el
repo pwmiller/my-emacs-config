@@ -1,24 +1,10 @@
 ;; init.el
-;;
-;; TODO:
-;;
-;; Make uniqify, and color-theme work again.
-;;
 
-;; Save backup and autosaves to ~/.emacs.d/.tmp
+;; Disable message "Package cl is deprecated"
+(setq byte-compile-warnings '(cl-functions))
 
-(setq temporary-file-directory "~/.emacs.d/tmp")
-
-(setq
-   backup-by-copying t      ; don't clobber symlinks
-   backup-directory-alist `((".*" . ,temporary-file-directory))    ; don't litter my fs tree
-   auto-save-file-name-transforms `((".*" ,temporary-file-directory t)) ; ditto
-   delete-old-versions t
-   kept-new-versions 6
-   kept-old-versions 2
-   version-control t
-   inhibit-startup-screen t
-   initial-scratch-message nil)
+;; Toggle this on for debugging purposes
+(setq debug-on-error t)
 
 ;; <leaf-install-code>
 (eval-and-compile
@@ -44,31 +30,63 @@
     (leaf-keywords-init)))
 ;; </leaf-install-code>
 
-;; Lazily install add-on packages.
+;; Define list of packages to install
 
-(leaf
-  flymake-jslint
-  vterm
-  cl-lib
-  ws-butler
-  :ensure t)
+(leaf ac-slime :ensure t)
+(leaf better-defaults :ensure t)
+(leaf cl-lib :ensure t)
+(leaf elpy :ensure t)
+(leaf flymake-jslint :ensure t)
+(leaf company-lean :ensure t)
+(leaf pyenv-mode :ensure t)
+(leaf vterm :ensure t)
+(leaf ws-butler :ensure t)
+
+;; Consider all custom themes "safe," and load them from
+;; ~/.emacs.d/themes
+
+(setq custom-safe-themes t) 
+(add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
+
+;; Set color theme
+;;
+;; Behavior here is still a little wonky, but good enough for now.
+
+(load-theme 'hober t t)
+
+;; Save backup and autosaves to ~/.emacs.d/.tmp
+
+(setq temporary-file-directory "~/.emacs.d/tmp")
+
+(setq
+ backup-by-copying t      ; don't clobber symlinks
+ backup-directory-alist `((".*" . ,temporary-file-directory))    ; don't litter my fs tree
+ auto-save-file-name-transforms `((".*" ,temporary-file-directory t)) ; ditto
+ delete-old-versions t
+ kept-new-versions 6
+ kept-old-versions 2
+ version-control t
+ inhibit-startup-screen t
+ initial-scratch-message nil)
 
 ;; General utility functions
 
 (defun symbol-components (symbol)
   `(
-     ("symbol-name"     . ,(symbol-name symbol))
-     ("symbol-value"    . ,(ignore-errors (symbol-value symbol)))
-     ("symbol-function" . ,(ignore-errors (symbol-function symbol)))
-     ("symbol-plist"    . ,(ignore-errors (symbol-plist symbol)))
-  ))
+    ("symbol-name"     . ,(symbol-name symbol))
+    ("symbol-value"    . ,(ignore-errors (symbol-value symbol)))
+    ("symbol-function" . ,(ignore-errors (symbol-function symbol)))
+    ("symbol-plist"    . ,(ignore-errors (symbol-plist symbol)))
+    ))
 
 (defun lisp ()
   (interactive)
-  (switch-to-buffer "*ielm*"))
+  (get-buffer-create "elisp REPL")
+  (switch-to-buffer "elisp REPL")
+  (ielm))
 
 (setq init-el-path
-  (concat user-emacs-directory "init.el"))
+      (concat user-emacs-directory "init.el"))
 
 (defun reload-init-el ()
   (interactive)
@@ -81,23 +99,18 @@
 ;; Set up pyflakes/PEP8 checking
 (defun flymake-create-temp-in-system-tempdir (filename prefix)
   (make-temp-file (or prefix "flymake")))
-					; Load Python Flymake
+                                        ; Load Python Flymake
 (when (load "flymake" t)
   (defun flymake-pyflakes-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
-					;                       'flymake-create-temp-inplace))
-		       'flymake-create-temp-in-system-tempdir))
-	   (local-file (file-relative-name
-			temp-file
-			(file-name-directory buffer-file-name))))
+                                        ;                       'flymake-create-temp-inplace))
+		               'flymake-create-temp-in-system-tempdir))
+	       (local-file (file-relative-name
+			            temp-file
+			            (file-name-directory buffer-file-name))))
       (list "~/.emacs.d/pyflymake.sh" (list local-file))))
   (add-to-list 'flymake-allowed-file-name-masks
-	       '("\\.py\\'" flymake-pyflakes-init)))
-
-;; Configure ws-butler to trim witespace at EOL on save in programming modes
-;; derived from prog-mode
-
-(add-hook 'prog-mode-hook #'ws-butler-mode)
+	           '("\\.py\\'" flymake-pyflakes-init)))
 
 ;; Configure ws-butler to ignore multiline strings
 
@@ -111,17 +124,15 @@
 ;; you have to copy the respective .el files from the ~/.emacs.d dir
 
 (autoload 'css-mode "css-mode")
-(add-to-list 'auto-mode-alist '("\\.js$" . js-mode))
-(setq auto-mode-alist (cons '("\\.json\\'" . js-mode) auto-mode-alist))
+(append auto-mode-alist
+        `(
+          ("\\.js$" . js-mode)
+          ("\\.json\\'" . js-mode)
+          ))
 
 ;; Configure JavaScript Flymake
 
 (add-hook 'js2-mode-hook 'flymake-mode)
-
-;; Modify the way emacs displays buffer names with the same filename
-;; but different paths
-;;(leaf uniquify
-;;      :ensure t)
 
 ;; We need the indent-tabs-mode to be set to nil to convert tabs
 ;; into spaces, which is needed to pass JSLint.
@@ -151,7 +162,7 @@
 
 ;; Put a little space after the line numbers so as not to crowd the
 ;; text.
-(setq linum-format "%d  ")
+(setq linum-format "%5d | ")
 
 ;; Set the mode to python-mode when the filename ends in ".py"
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
@@ -165,46 +176,26 @@
       desktop-base-lock-name  "lock"
       desktop-path            (list desktop-dirname)
       desktop-save            t
-      ;desktop-files-not-to-save nil
+                                        ;desktop-files-not-to-save nil
       desktop-load-locked-desktop nil)
-
-;; Set a proper color theme.
-
-;(require 'color-theme)
-;(color-theme-initialize)
-;(color-theme-hober)
 
 ;; Don't highlight the current line.  It's annoying!
 
 (global-hl-line-mode 0)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(leaf-keywords hydra flymake-jslint el-get color-theme blackout))
- '(safe-local-variable-values
-   '((eval ignore-errors "Write-contents-functions is a buffer-local alternative to before-save-hook"
-           (add-hook 'write-contents-functions
-                     (lambda nil
-                       (delete-trailing-whitespace)
-                       nil))
-           (require 'whitespace)
-           "Sometimes the mode needs to be toggled off and on."
-           (whitespace-mode 0)
-           (whitespace-mode 1))
-     (whitespace-style face tabs trailing lines-tail))))
 
-;; Configure autocomplete for ielm
+(elpy-enable)
 
-(defun ielm-auto-complete ()
-  "Enables `auto-complete' support in \\[ielm]."
-  (setq ac-sources '(ac-source-functions
-                     ac-source-variables
-                     ac-source-features
-                     ac-source-symbols
-                     ac-source-words-in-same-mode-buffers))
-  (add-to-list 'ac-modes 'inferior-emacs-lisp-mode)
-  (auto-complete-mode 1))
-(add-hook 'ielm-mode-hook 'ielm-auto-complete)
+(defun ipython ()
+  (interactive)
+  (elpy-shell-switch-to-shell)
+  (delete-other-windows))
+
+;; You must install pyenv or this will error
+
+(pyenv-mode)
+
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "-i --simple-prompt")
+
+;; Enable autocomplete using company
+(add-hook 'after-init-hook #'global-company-mode)
