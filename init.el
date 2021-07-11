@@ -1,12 +1,15 @@
 ;; init.el
 
 ;; Disable message "Package cl is deprecated"
+
 (setq byte-compile-warnings '(cl-functions))
 
 ;; Toggle this on for debugging purposes
+
 (setq debug-on-error t)
 
 ;; <leaf-install-code>
+
 (eval-and-compile
   (customize-set-variable
    'package-archives '(("org" . "https://orgmode.org/elpa/")
@@ -20,7 +23,9 @@
   (leaf leaf-keywords
     :ensure t
     :init
+    
     ;; optional packages if you want to use :hydra, :el-get, :blackout,,,
+    
     (leaf hydra :ensure t)
     (leaf el-get :ensure t)
     (leaf blackout :ensure t)
@@ -28,6 +33,7 @@
     :config
     ;; initialize leaf-keywords.el
     (leaf-keywords-init)))
+
 ;; </leaf-install-code>
 
 ;; Define list of packages to install
@@ -136,35 +142,40 @@
 
 ;; We need the indent-tabs-mode to be set to nil to convert tabs
 ;; into spaces, which is needed to pass JSLint.
+
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
 
 ;; Set the Flymake highlight colors -- the default ones are impossible to read.
+
 (custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(flymake-error ((((class color)) (:background "Red" :bold :foreground "Yellow"))))
  '(flymake-warning ((((class color)) (:background "DarkBlue")))))
+
 ;; Set the path for the emacs process so things like running .bashrc
 ;; when opening a terminal work
+
 (setenv "PATH" (shell-command-to-string "source ~/.bash_profile; echo -n $PATH"))
 
 ;; Show the menu bar
+
 (menu-bar-mode t)
 
 ;; Line numbers on the left
+
 (global-linum-mode t)
 
 ;; Show column number in status bar
+
 (column-number-mode)
 
 ;; Put a little space after the line numbers so as not to crowd the
 ;; text.
+
 (setq linum-format "%5d | ")
 
 ;; Set the mode to python-mode when the filename ends in ".py"
+
 (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
 
 ;; Save session and restore files when editor closes, if we are using
@@ -198,4 +209,15 @@
       python-shell-interpreter-args "-i --simple-prompt")
 
 ;; Enable autocomplete using company
+
 (add-hook 'after-init-hook #'global-company-mode)
+
+;; Save custom variables in a separate file, so we don't clutter up init.el
+
+(setq custom-file "~/.emacs.d/emacs-custom-variables.el")
+(load custom-file)
+
+;; Prompt to safe any unsaved customizations on exit.
+
+(add-hook 'kill-emacs-query-functions
+          'custom-prompt-customize-unsaved-options)
