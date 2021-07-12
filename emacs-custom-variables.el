@@ -3,6 +3,10 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(package-archives
+   '(("org" . "https://orgmode.org/elpa/")
+     ("melpa" . "https://melpa.org/packages/")
+     ("gnu" . "https://elpa.gnu.org/packages/")))
  '(package-selected-packages
    '(ws-butler vterm pyenv-mode company-lean flymake-jslint elpy better-defaults ac-slime blackout el-get hydra leaf-keywords leaf)))
 (custom-set-faces
