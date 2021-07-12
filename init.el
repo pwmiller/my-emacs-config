@@ -5,19 +5,17 @@
 
 (setq ignore-byte-compile-warnings t)
 
-(when
-    (not ignore-byte-compile-warnings
-      (
-       (setq byte-compile-warnings
-             '(not nresolved
-                   free-vars
-                   callargs
-                   redefine
-                   obsolete
-                   noruntime
-                   cl-functions
-                   interactive-only
-                   )))))
+(when (not ignore-byte-compile-warnings)
+  (setq byte-compile-warnings
+        '(not nresolved
+              free-vars
+              callargs
+              redefine
+              obsolete
+              noruntime
+              cl-functions
+              interactive-only
+              )))
 
 ;; Toggle this on for debugging purposes
 
