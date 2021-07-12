@@ -229,8 +229,3 @@
 
 (setq custom-file "~/.emacs.d/emacs-custom-variables.el")
 (load custom-file)
-
-;; Prompt to safe any unsaved customizations on exit.
-
-(add-hook 'kill-emacs-query-functions
-          'custom-prompt-customize-unsaved-options)
